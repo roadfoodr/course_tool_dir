@@ -1,7 +1,7 @@
 from fasthtml.common import *
 from dataclasses import dataclass
 import asyncio
-from mcp_client import get_relevant_chunks, check_mcp_health
+from mcp_client import get_relevant_chunks, check_mcp_health, mcp_client
 
 # FastHTML app with MonsterUI theme for modern styling
 app, rt = fast_app()
@@ -69,6 +69,7 @@ def create_query_form(question: str = "", top_k: int = 3):
         hx_post="/query",
         hx_target="#results",
         hx_indicator="#loading",
+        hx_disabled_elt="button",
         style="max-width: 1000px; margin: 0 auto; padding: 20px;"
     )
 
@@ -119,14 +120,24 @@ def create_results_display(question: str, top_k: int, results: list):
     )
 
 def create_loading_indicator():
-    """Create loading indicator"""
+    """Create loading indicator with spinner animation"""
     return Div(
         Div(
-            "🔄 Searching...",
-            style="text-align: center; padding: 20px; font-style: italic; color: #666;"
+            Div(
+                style=(
+                    "border: 4px solid #f3f3f3; border-top: 4px solid #007bff; "
+                    "border-radius: 50%; width: 40px; height: 40px; "
+                    "animation: spin 1s linear infinite; margin: 0 auto 16px auto;"
+                )
+            ),
+            Div("Searching MCP server...", style="font-size: 16px; color: #666;"),
+            Div(f"Connecting to: {mcp_client.server_url}", style="font-size: 13px; color: #007bff; margin-top: 4px; font-family: monospace;"),
+            Div("Please wait while we retrieve relevant chunks", style="font-size: 14px; color: #888; margin-top: 8px;"),
+            style="text-align: center; padding: 30px;"
         ),
         id="loading",
-        style="display: none; max-width: 800px; margin: 20px auto; padding: 20px;"
+        cls="htmx-indicator",
+        style="max-width: 800px; margin: 20px auto; padding: 20px; background-color: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
     )
 
 def create_page_layout(query_form, results_area, loading_indicator=None):
@@ -143,7 +154,7 @@ def create_page_layout(query_form, results_area, loading_indicator=None):
             *content,
             style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; min-height: 100vh; padding: 20px;"
         ),
-        # Add CSS for title and collapsible cards
+        # Add CSS for title, collapsible cards, and spinner animation
         Style("""
             h1 { text-align: center; margin: 20px 0 40px 0; }
             details > summary {
@@ -168,6 +179,24 @@ def create_page_layout(query_form, results_area, loading_indicator=None):
             }
             details[open] > summary {
                 border-bottom: 1px solid #eee;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .htmx-indicator {
+                display: none;
+            }
+            .htmx-request .htmx-indicator {
+                display: block;
+            }
+            .htmx-request.htmx-indicator {
+                display: block;
+            }
+            button:disabled {
+                background-color: #6c757d !important;
+                cursor: not-allowed !important;
+                opacity: 0.6;
             }
         """)
     )
