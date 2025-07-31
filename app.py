@@ -1,5 +1,7 @@
 from fasthtml.common import *
 from dataclasses import dataclass
+import asyncio
+from mcp_client import get_relevant_chunks, check_mcp_health
 
 # FastHTML app with MonsterUI theme for modern styling
 app, rt = fast_app()
@@ -180,33 +182,50 @@ def get():
     return create_page_layout(query_form, results_area, loading_indicator)
 
 @rt("/query")
-def post(question: str, top_k: int = 3):
+async def post(question: str, top_k: int = 3):
     """Handle query submission - return only results for HTMX"""
     
-    # Placeholder results - this will be replaced with actual MCP calls
-    placeholder_results = [
-        {
-            "content": "This is a placeholder result chunk that would normally come from the MCP server. It contains relevant information about your query.",
-            "source": "placeholder_document_1.txt", 
-            "score": 0.95
-        },
-        {
-            "content": "Another example chunk showing how results would be displayed. The actual implementation will call the MCP server to retrieve real content.",
-            "source": "placeholder_document_2.txt",
-            "score": 0.87  
-        },
-        {
-            "content": "A third result demonstrating the layout. Each chunk will show content, source, and relevance score when connected to the real MCP server.",
-            "source": "placeholder_document_3.txt",
-            "score": 0.79
+    try:
+        # Get actual results from MCP server
+        results = await get_relevant_chunks(question, top_k)
+        
+        # Return only the results component for HTMX replacement
+        return create_results_display(question, top_k, results)
+    
+    except Exception as e:
+        # If something goes wrong, show an error message
+        error_result = [{
+            "content": f"Error retrieving chunks: {str(e)}",
+            "source": "error",
+            "score": 0.0
+        }]
+        return create_results_display(question, top_k, error_result)
+
+@rt("/health")
+async def health():
+    """Health check endpoint that also checks MCP server connectivity"""
+    try:
+        # Import here to access the singleton instance
+        from mcp_client import mcp_client
+        
+        # Check MCP server health
+        mcp_healthy, mcp_response = await check_mcp_health()
+        
+        return {
+            "status": "healthy" if mcp_healthy else "degraded",
+            "mcp_server": "connected" if mcp_healthy else "disconnected",
+            "message": "Application is running" + (" and MCP server is reachable" if mcp_healthy else " but MCP server is unreachable"),
+            "mcp_server_url": mcp_client.server_url,
+            "mcp_health_endpoint": mcp_client.health_endpoint,
+            "mcp_server_response": mcp_response
         }
-    ]
-    
-    # Limit results to requested number
-    results = placeholder_results[:top_k]
-    
-    # Return only the results component for HTMX replacement
-    return create_results_display(question, top_k, results)
+    except Exception as e:
+        return {
+            "status": "error",
+            "mcp_server": "error", 
+            "message": f"Health check failed: {str(e)}",
+            "mcp_server_response": {"error": str(e)}
+        }
 
 if __name__ == "__main__":
     serve(port=5001)
