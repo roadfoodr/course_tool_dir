@@ -91,7 +91,7 @@ class MCPClient:
                 normalized_chunks = []
                 for chunk in chunks_data:
                     if isinstance(chunk, dict):
-                        # Map the MCP server fields to our expected format
+                        # Map the MCP server fields to our display format
                         normalized_chunk = {
                             "content": chunk.get("text", ""),  # 'text' field contains the content
                             "source": f"{chunk.get('workshop', 'Unknown')} - {chunk.get('timestamp', 'Unknown')}",  # Combine workshop and timestamp

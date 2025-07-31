@@ -2,6 +2,7 @@ from fasthtml.common import *
 from dataclasses import dataclass
 import asyncio
 from mcp_client import get_relevant_chunks, check_mcp_health, mcp_client
+from utils.text_highlighting import highlight_query_terms_smart
 
 # FastHTML app with MonsterUI theme for modern styling
 app, rt = fast_app()
@@ -90,6 +91,9 @@ def create_results_display(question: str, top_k: int, results: list):
     """Create results display component"""
     result_cards = []
     for i, result in enumerate(results, 1):
+        # Highlight query terms in the content
+        highlighted_content = highlight_query_terms_smart(result["content"], question)
+        
         # Create collapsible card using details/summary
         card = Details(
                             Summary(
@@ -100,7 +104,7 @@ def create_results_display(question: str, top_k: int, results: list):
                 style="cursor: pointer; padding: 12px 15px; margin: 0; display: flex; align-items: center; justify-content: space-between;"
             ),
             Div(
-                P(result["content"], style="margin: 15px 0; line-height: 1.4; color: #333; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; background-color: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef;"),
+                Div(NotStr(highlighted_content), style="margin: 15px 0; line-height: 1.4; color: #333; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; background-color: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef;"),
                 Div(
                     Strong("Source: "), result["source"], 
                     Br(),
@@ -157,7 +161,7 @@ def create_page_layout(query_form, results_area, loading_indicator=None):
             *content,
             style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; min-height: 100vh; padding: 20px;"
         ),
-        # Add CSS for title, collapsible cards, and spinner animation
+        # Add CSS for title, collapsible cards, spinner animation, and text highlighting
         Style("""
             h1 { text-align: center; margin: 20px 0 40px 0; }
             details > summary {
@@ -200,6 +204,26 @@ def create_page_layout(query_form, results_area, loading_indicator=None):
                 background-color: #6c757d !important;
                 cursor: not-allowed !important;
                 opacity: 0.6;
+            }
+            /* Text highlighting styles */
+            mark.highlight {
+                background-color: #fff3cd;
+                color: #856404;
+                padding: 1px 3px;
+                border-radius: 3px;
+                font-weight: 600;
+                border: 1px solid #ffeaa7;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            }
+            /* Alternative highlight style for better contrast */
+            mark {
+                background-color: #fff3cd;
+                color: #856404;
+                padding: 1px 3px;
+                border-radius: 3px;
+                font-weight: 600;
+                border: 1px solid #ffeaa7;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             }
         """)
     )
