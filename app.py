@@ -9,44 +9,71 @@ class QueryRequest:
     question: str
     top_k: int = 3
 
-@rt("/")
-def get():
-    """Main page with query form and results display"""
-    
-    # Query form section
-    query_form = Form(
-        H2("Enter your question to retrieve relevant chunks from the MCP server"),
+def create_query_form(question: str = "", top_k: int = 3):
+    """Create reusable query form component"""
+    return Form(
+        P("Enter your question to retrieve relevant chunks from the MCP server",
+        style="text-align: center; margin-bottom: 20px; color: #666; font-size: 16px;"),
+
+        # Question input and top-k field on the same line
         Div(
             Input(
-                name="question", 
+                name="question",
+                value=question,
                 placeholder="What is the definition of an agent?",
-                style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;"
+                required=True,
+                style=(
+                    "flex: 1; padding: 12px 16px; font-size: 16px; "
+                    "border: 1px solid #ccc; border-radius: 4px; min-width: 0;"
+                )
             ),
-            Br(),
-            Input(
-                name="top_k", 
-                type="number", 
-                value="3",
-                min="1",
-                max="10",
-                style="width: 80px; padding: 5px; margin: 5px; border: 1px solid #ddd; border-radius: 4px;"
+            Div(
+                Label("Top-K:", style="font-size: 14px; color: #666; margin-right: 8px;"),
+                Input(
+                    name="top_k",
+                    type="number",
+                    value=str(top_k),
+                    min="1",
+                    max="10",
+                    style=(
+                        "width: 60px; text-align: center; font-size: 16px; "
+                        "padding: 12px 8px; border: 1px solid #ccc; border-radius: 4px;"
+                    )
+                ),
+                style="display: flex; align-items: center; flex-shrink: 0;"
             ),
-            Label(" Results", style="margin-left: 5px; color: #666;"),
-            Br(),
-            Button(
-                "Submit Query", 
-                type="submit",
-                style="background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;"
-            ),
-            style="margin: 20px 0;"
+            style=(
+                "display: flex; gap: 16px; align-items: center; "
+                "max-width: 800px; margin: 0 auto 16px auto;"
+            )
         ),
+
+        # Submit button on its own line
+        Div(
+            Button(
+                "Submit Query",
+                type="submit",
+                style=(
+                    "background-color: #007bff; color: white; padding: 12px 24px; "
+                    "border: none; border-radius: 4px; cursor: pointer; font-size: 16px; "
+                    "transition: background-color 0.2s ease;"
+                )
+            ),
+            style="text-align: center; max-width: 150px; margin: 0 auto;"
+        ),
+
         method="post",
         action="/query",
-        style="max-width: 800px; margin: 0 auto; padding: 20px;"
+        hx_post="/query",
+        hx_target="#results",
+        hx_indicator="#loading",
+        style="max-width: 1000px; margin: 0 auto; padding: 20px;"
     )
-    
-    # Results display area
-    results_area = Div(
+
+
+def create_empty_results():
+    """Create empty results placeholder"""
+    return Div(
         H3("Results"),
         Div(
             P("Submit a query above to see results here...", 
@@ -56,20 +83,73 @@ def get():
         id="results",
         style="max-width: 800px; margin: 20px auto; padding: 20px;"
     )
+
+def create_results_display(question: str, top_k: int, results: list):
+    """Create results display component"""
+    result_cards = []
+    for i, result in enumerate(results, 1):
+        card = Div(
+            H4(f"Result {i}", style="margin: 0 0 10px 0; color: #333;"),
+            P(result["content"], style="margin: 10px 0; line-height: 1.6;"),
+            Div(
+                Strong("Source: "), result["source"],
+                Span(f" | Score: {result['score']:.2f}", style="color: #666; margin-left: 10px;"),
+                style="font-size: 0.9em; color: #555; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;"
+            ),
+            style="border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin: 10px 0; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+        )
+        result_cards.append(card)
+    
+    return Div(
+        H3("Results"),
+        P(f"Query: \"{question}\" (Top {top_k} results)", 
+          style="color: #666; margin-bottom: 20px; font-style: italic;"),
+        *result_cards,
+        id="results",
+        style="max-width: 800px; margin: 20px auto; padding: 20px;"
+    )
+
+def create_loading_indicator():
+    """Create loading indicator"""
+    return Div(
+        Div(
+            "🔄 Searching...",
+            style="text-align: center; padding: 20px; font-style: italic; color: #666;"
+        ),
+        id="loading",
+        style="display: none; max-width: 800px; margin: 20px auto; padding: 20px;"
+    )
+
+def create_page_layout(query_form, results_area, loading_indicator=None):
+    """Create main page layout"""
+    content = [
+        query_form,
+        loading_indicator if loading_indicator else "",
+        results_area
+    ]
     
     return Titled(
         "MCP Query Tool",
         Div(
-            H1("MCP Query Tool", style="text-align: center; color: #333; margin-bottom: 30px;"),
-            query_form,
-            results_area,
+            *content,
             style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; min-height: 100vh; padding: 20px;"
-        )
+        ),
+        # Add CSS to center the auto-generated H1 title
+        Style("h1 { text-align: center; margin: 20px 0 40px 0; }")
     )
+
+@rt("/")
+def get():
+    """Main page with query form and results display"""
+    query_form = create_query_form()
+    results_area = create_empty_results()
+    loading_indicator = create_loading_indicator()
+    
+    return create_page_layout(query_form, results_area, loading_indicator)
 
 @rt("/query")
 def post(question: str, top_k: int = 3):
-    """Handle query submission - placeholder for now"""
+    """Handle query submission - return only results for HTMX"""
     
     # Placeholder results - this will be replaced with actual MCP calls
     placeholder_results = [
@@ -93,72 +173,8 @@ def post(question: str, top_k: int = 3):
     # Limit results to requested number
     results = placeholder_results[:top_k]
     
-    # Generate result cards
-    result_cards = []
-    for i, result in enumerate(results, 1):
-        card = Div(
-            H4(f"Result {i}", style="margin: 0 0 10px 0; color: #333;"),
-            P(result["content"], style="margin: 10px 0; line-height: 1.6;"),
-            Div(
-                Strong("Source: "), result["source"],
-                Span(f" | Score: {result['score']:.2f}", style="color: #666; margin-left: 10px;"),
-                style="font-size: 0.9em; color: #555; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;"
-            ),
-            style="border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin: 10px 0; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
-        )
-        result_cards.append(card)
-    
-    # Results display
-    results_area = Div(
-        H3("Results"),
-        P(f"Query: \"{question}\" (Top {top_k} results)", 
-          style="color: #666; margin-bottom: 20px; font-style: italic;"),
-        *result_cards,
-        style="max-width: 800px; margin: 20px auto; padding: 20px;"
-    )
-    
-    # Return the same page layout but with results
-    query_form = Form(
-        H2("Enter your question to retrieve relevant chunks from the MCP server"),
-        Div(
-            Input(
-                name="question", 
-                value=question,
-                placeholder="What is the definition of an agent?",
-                style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;"
-            ),
-            Br(),
-            Input(
-                name="top_k", 
-                type="number", 
-                value=str(top_k),
-                min="1",
-                max="10",
-                style="width: 80px; padding: 5px; margin: 5px; border: 1px solid #ddd; border-radius: 4px;"
-            ),
-            Label(" Results", style="margin-left: 5px; color: #666;"),
-            Br(),
-            Button(
-                "Submit Query", 
-                type="submit",
-                style="background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;"
-            ),
-            style="margin: 20px 0;"
-        ),
-        method="post",
-        action="/query",
-        style="max-width: 800px; margin: 0 auto; padding: 20px;"
-    )
-    
-    return Titled(
-        "MCP Query Tool",
-        Div(
-            H1("MCP Query Tool", style="text-align: center; color: #333; margin-bottom: 30px;"),
-            query_form,
-            results_area,
-            style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; min-height: 100vh; padding: 20px;"
-        )
-    )
+    # Return only the results component for HTMX replacement
+    return create_results_display(question, top_k, results)
 
 if __name__ == "__main__":
     serve(port=5001)
