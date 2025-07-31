@@ -92,16 +92,19 @@ def create_results_display(question: str, top_k: int, results: list):
     for i, result in enumerate(results, 1):
         # Create collapsible card using details/summary
         card = Details(
-            Summary(
+                            Summary(
                 Span(f"Result {i}", style="font-weight: bold; color: #333; margin-right: 10px;"),
                 Span(f"Score: {result['score']:.2f}", style="color: #666; font-size: 0.9em; margin-right: 10px;"),
+                Span(f"Speaker: {result.get('speaker', 'Unknown')}", style="color: #555; font-size: 0.85em; margin-right: 10px;"),
                 Span(f"({result['source']})", style="color: #888; font-size: 0.85em;"),
                 style="cursor: pointer; padding: 12px 15px; margin: 0; display: flex; align-items: center; justify-content: space-between;"
             ),
             Div(
                 P(result["content"], style="margin: 15px 0; line-height: 1.4; color: #333; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; background-color: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef;"),
                 Div(
-                    Strong("Source: "), result["source"],
+                    Strong("Source: "), result["source"], 
+                    Br(),
+                    Strong("Speaker: "), result.get("speaker", "Unknown"),
                     style="font-size: 0.9em; color: #555; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;"
                 ),
                 style="padding: 0 15px 15px 15px;"
@@ -226,7 +229,8 @@ async def post(question: str, top_k: int = 3):
         error_result = [{
             "content": f"Error retrieving chunks: {str(e)}",
             "source": "error",
-            "score": 0.0
+            "score": 0.0,
+            "speaker": "System"
         }]
         return create_results_display(question, top_k, error_result)
 

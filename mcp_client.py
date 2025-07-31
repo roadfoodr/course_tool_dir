@@ -95,7 +95,8 @@ class MCPClient:
                         normalized_chunk = {
                             "content": chunk.get("text", ""),  # 'text' field contains the content
                             "source": f"{chunk.get('workshop', 'Unknown')} - {chunk.get('timestamp', 'Unknown')}",  # Combine workshop and timestamp
-                            "score": chunk.get("relevance", 0.0)  # 'relevance' field is the score
+                            "score": chunk.get("relevance", 0.0),  # 'relevance' field is the score
+                            "speaker": chunk.get("speaker", "Unknown")  # Include speaker information
                         }
                         normalized_chunks.append(normalized_chunk)
                     else:
@@ -103,7 +104,8 @@ class MCPClient:
                         normalized_chunks.append({
                             "content": str(chunk),
                             "source": "unknown",
-                            "score": 0.0
+                            "score": 0.0,
+                            "speaker": "Unknown"
                         })
                 
                 return normalized_chunks
@@ -136,17 +138,20 @@ class MCPClient:
                 {
                     "content": f"[MCP Server Unavailable] This is a placeholder result for the query: '{question}'. The MCP server could not be reached.",
                     "source": "fallback_placeholder.txt", 
-                    "score": 0.0
+                    "score": 0.0,
+                    "speaker": "System"
                 },
                 {
                     "content": f"[Error Response] Unable to retrieve real chunks from the MCP server. Please check server connectivity and try again.",
                     "source": "error_fallback.txt",
-                    "score": 0.0  
+                    "score": 0.0,
+                    "speaker": "System"
                 },
                 {
                     "content": f"[Debug Info] Original query: '{question}', Requested top_k: {top_k}. Error: {str(e)}",
                     "source": "debug_info.txt",
-                    "score": 0.0
+                    "score": 0.0,
+                    "speaker": "System"
                 }
             ]
             
