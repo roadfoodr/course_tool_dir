@@ -1,4 +1,7 @@
 from fasthtml.common import *
+from starlette.staticfiles import StaticFiles
+from starlette.routing import Mount
+
 from dataclasses import dataclass
 import asyncio
 from mcp_client import get_relevant_chunks, check_mcp_health, mcp_client
@@ -6,6 +9,7 @@ from utils.text_highlighting import highlight_query_terms_smart
 
 # FastHTML app with MonsterUI theme for modern styling
 app, rt = fast_app()
+app.routes.append(Mount('/static', app=StaticFiles(directory='static'), name='static'))
 
 @dataclass
 class QueryRequest:
@@ -161,71 +165,8 @@ def create_page_layout(query_form, results_area, loading_indicator=None):
             *content,
             style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; min-height: 100vh; padding: 20px;"
         ),
-        # Add CSS for title, collapsible cards, spinner animation, and text highlighting
-        Style("""
-            h1 { text-align: center; margin: 20px 0 40px 0; }
-            details > summary {
-                list-style: none;
-                transition: background-color 0.2s ease;
-            }
-            details > summary::-webkit-details-marker {
-                display: none;
-            }
-            details > summary::before {
-                content: '▶';
-                display: inline-block;
-                margin-right: 8px;
-                transition: transform 0.2s ease;
-                color: #666;
-            }
-            details[open] > summary::before {
-                transform: rotate(90deg);
-            }
-            details > summary:hover {
-                background-color: #f8f9fa;
-            }
-            details[open] > summary {
-                border-bottom: 1px solid #eee;
-            }
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            .htmx-indicator {
-                display: none;
-            }
-            .htmx-request .htmx-indicator {
-                display: block;
-            }
-            .htmx-request.htmx-indicator {
-                display: block;
-            }
-            button:disabled {
-                background-color: #6c757d !important;
-                cursor: not-allowed !important;
-                opacity: 0.6;
-            }
-            /* Text highlighting styles */
-            mark.highlight {
-                background-color: #fff3cd;
-                color: #856404;
-                padding: 1px 3px;
-                border-radius: 3px;
-                font-weight: 600;
-                border: 1px solid #ffeaa7;
-                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-            }
-            /* Alternative highlight style for better contrast */
-            mark {
-                background-color: #fff3cd;
-                color: #856404;
-                padding: 1px 3px;
-                border-radius: 3px;
-                font-weight: 600;
-                border: 1px solid #ffeaa7;
-                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-            }
-        """)
+        # Link to the external stylesheet
+        Link(rel="stylesheet", href="/static/styles.css")
     )
 
 @rt("/")
