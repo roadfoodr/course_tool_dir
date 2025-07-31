@@ -1,0 +1,5 @@
+fasthtml
+fastmcp
+python-dotenv
+httpx
+monsterui 
